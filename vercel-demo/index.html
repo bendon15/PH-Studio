@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHStudio — Premium Photography Studio (Demo)</title>
+<meta name="description" content="Editorial wedding, portrait, event, graduation, prenatal, and corporate photography. Portfolio demo.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="siteHeader"></div>
+
+<section class="hero">
+  <div class="container hero-content">
+    <span class="eyebrow">Metro Manila &middot; Available for Travel</span>
+    <h1>Photography that feels <em>like you.</em></h1>
+    <p>PHStudio documents weddings, portraits, and milestone moments with an editorial eye and a warm, honest style — so your gallery feels timeless, not staged.</p>
+    <div class="hero-actions">
+      <a href="booking.html" class="btn btn-gold btn-lg">Book a Session</a>
+      <a href="portfolio.html" class="btn btn-ghost btn-lg">View Portfolio</a>
+    </div>
+  </div>
+  <div class="hero-scroll"><span>Scroll</span><span class="line"></span></div>
+</section>
+
+<section class="section">
+  <div class="container intro-grid">
+    <div class="intro-images reveal">
+      <img class="img-a" src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=900" alt="Photographer at work">
+      <img class="img-b" src="https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=700" alt="Camera detail">
+    </div>
+    <div class="intro-text reveal">
+      <span class="eyebrow">The Studio</span>
+      <h2>Led by Marco Villanueva, <br>built for real moments.</h2>
+      <p>PHStudio began in 2016 with a single mission: capture people as they truly are. Today our small team of photographers has documented over 500 weddings, portrait sessions, and milestone events across the Philippines.</p>
+      <p>We believe the best photographs happen when people forget the camera is there — that's the moment we chase, every single time.</p>
+      <div class="stat-row">
+        <div><div class="num">500+</div><div class="label">Sessions Shot</div></div>
+        <div><div class="num">9</div><div class="label">Years Experience</div></div>
+        <div><div class="num">4.9★</div><div class="label">Client Rating</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-charcoal">
+  <div class="container">
+    <div class="section-head reveal"><span class="eyebrow">What We Shoot</span><h2>Every milestone, <br>one studio.</h2></div>
+    <div class="category-grid" id="categoryGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head center reveal" style="margin-left:auto;margin-right:auto;">
+      <span class="eyebrow">Selected Work</span><h2>From the portfolio</h2>
+      <p>A glimpse at recent sessions across every category we shoot.</p>
+    </div>
+    <div class="masonry reveal" id="featuredGrid"></div>
+    <div class="text-center mt-40"><a href="portfolio.html" class="btn btn-outline-dark btn-lg">View Full Portfolio</a></div>
+  </div>
+</section>
+
+<section class="section section-charcoal">
+  <div class="container">
+    <div class="section-head center reveal" style="margin-left:auto;margin-right:auto;">
+      <span class="eyebrow">Investment</span><h2>Packages &amp; Pricing</h2>
+      <p>Transparent pricing across our most-booked sessions.</p>
+    </div>
+    <div class="package-grid reveal" id="packageGrid"></div>
+  </div>
+</section>
+
+<section class="section section-black">
+  <div class="container">
+    <div class="section-head center reveal" style="margin-left:auto;margin-right:auto;"><span class="eyebrow">Kind Words</span><h2>What clients say</h2></div>
+    <div class="testimonial-track reveal" id="testimonialGrid"></div>
+  </div>
+</section>
+
+<section class="cta-banner">
+  <div class="container reveal">
+    <span class="eyebrow">Ready when you are</span>
+    <h2>Let's create something timeless together.</h2>
+    <p>Tell us your date, your story, and your vision — we'll handle the rest.</p>
+    <a href="booking.html" class="btn btn-gold btn-lg">Start Your Booking</a>
+  </div>
+</section>
+
+<div id="siteFooter"></div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+PHApp.renderHeader('home');
+PHApp.renderFooter();
+
+document.getElementById('categoryGrid').innerHTML = PHSTUDIO_SEED.categories.map(c => `
+  <a href="portfolio.html?category=${c.slug}" class="category-card reveal">
+    <img src="${c.cover}" alt="${c.name}">
+    <div class="category-info"><span class="cat-count">Photography</span><h3>${c.name}</h3></div>
+  </a>`).join('');
+
+const featured = PHSTUDIO_SEED.portfolio.filter(p => p.featured).slice(0, 6);
+document.getElementById('featuredGrid').innerHTML = featured.map(p => `
+  <div class="m-item" data-lightbox="${p.img}">
+    <img src="${p.img}" alt="${p.title}" loading="lazy">
+    <div class="m-overlay">${p.category} — ${p.title}</div>
+  </div>`).join('');
+
+const popularPackages = [...PHSTUDIO_SEED.packages].sort((a,b) => (b.popular?1:0)-(a.popular?1:0)).slice(0, 3);
+document.getElementById('packageGrid').innerHTML = popularPackages.map(pkg => `
+  <div class="package-card ${pkg.popular ? 'popular' : ''}" style="background:var(--charcoal-light);border-color:var(--line);color:#fff;">
+    ${pkg.popular ? '<span class="popular-tag">Most Booked</span>' : ''}
+    <span class="package-cat">${pkg.category}</span>
+    <h3 style="color:#fff;">${pkg.name}</h3>
+    <div class="package-price" style="color:var(--gold);">${PHApp.money(pkg.price)} <span style="color:var(--grey-light);">/ session</span></div>
+    <ul class="package-list">${pkg.items.slice(0,4).map(i => `<li style="color:var(--grey-light);border-color:var(--line);">${i}</li>`).join('')}</ul>
+    <a href="booking.html?package=${pkg.id}" class="btn btn-gold btn-block">Select Package</a>
+  </div>`).join('');
+
+document.getElementById('testimonialGrid').innerHTML = PHSTUDIO_SEED.testimonials.slice(0,3).map(t => `
+  <div class="testimonial-card">
+    <div class="stars">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</div>
+    <p class="quote">&ldquo;${t.quote}&rdquo;</p>
+    <div class="testimonial-author">
+      <div class="avatar-circle">${t.name.charAt(0)}</div>
+      <div><div class="author-name">${t.name}</div><div class="author-role">Verified Client</div></div>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>

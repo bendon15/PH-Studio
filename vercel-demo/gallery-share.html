@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shared Gallery — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="siteHeader"></div>
+
+<section class="page-hero">
+  <div class="container"><span class="eyebrow">Shared Gallery</span><h1 id="galleryTitle">Gallery</h1><div class="breadcrumb" id="galleryBreadcrumb"></div></div>
+</section>
+
+<section class="section"><div class="container" id="galleryContent"></div></section>
+
+<div id="siteFooter"></div>
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE=''; PHApp.renderHeader('home'); PHApp.renderFooter();
+const db = PHStore.load();
+const usersById = Object.fromEntries(db.users.map(u => [u.id, u]));
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+const gallery = db.galleries.find(g => g.share_token === token && g.is_published !== false);
+
+if (!gallery) {
+  document.getElementById('galleryTitle').textContent = 'Gallery Not Found';
+  document.getElementById('galleryContent').innerHTML = `<div class="text-center"><p style="color:var(--grey);">This gallery link is invalid, unpublished, or has expired.</p><a href="index.html" class="btn btn-outline-dark mt-40">Return Home</a></div>`;
+} else {
+  document.getElementById('galleryTitle').textContent = gallery.title;
+  document.getElementById('galleryBreadcrumb').textContent = `Shared by ${usersById[gallery.client_id]?.full_name||'a client'} via PHStudio`;
+  document.getElementById('galleryContent').innerHTML = `
+    ${gallery.notes ? `<div class="alert alert-info" style="max-width:700px;margin:0 auto 40px;">${gallery.notes}</div>` : ''}
+    <div class="masonry">${gallery.photos.map(p => `
+      <div class="m-item" data-lightbox="${p.img}"><img src="${p.img}" alt="${p.caption||''}" loading="lazy">${p.caption ? `<div class="m-overlay">${p.caption}</div>` : ''}</div>`).join('')}</div>`;
+
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-lightbox]');
+    if (!trigger) return;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(11,11,12,0.94);display:flex;align-items:center;justify-content:center;z-index:999;cursor:zoom-out;';
+    overlay.innerHTML = `<img src="${trigger.dataset.lightbox}" style="max-width:90%;max-height:86%;border-radius:4px;">`;
+    overlay.addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
+  });
+}
+</script>
+</body>
+</html>

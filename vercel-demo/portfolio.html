@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="siteHeader"></div>
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Our Work</span><h1>Portfolio</h1>
+    <div class="breadcrumb"><a href="index.html">Home</a> / Portfolio</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="filter-bar reveal" id="filterBar"></div>
+    <div class="masonry reveal" id="masonryGrid"></div>
+  </div>
+</section>
+
+<section class="cta-banner">
+  <div class="container reveal">
+    <span class="eyebrow">Like what you see?</span><h2>Your story deserves the same care.</h2>
+    <a href="booking.html" class="btn btn-gold btn-lg">Book a Session</a>
+  </div>
+</section>
+
+<div id="siteFooter"></div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+PHApp.renderHeader('portfolio');
+PHApp.renderFooter();
+
+const params = new URLSearchParams(window.location.search);
+const activeSlug = params.get('category') || 'all';
+
+const cats = [{slug:'all', name:'All'}, ...PHSTUDIO_SEED.categories];
+document.getElementById('filterBar').innerHTML = cats.map(c =>
+  `<button class="filter-btn ${activeSlug === c.slug ? 'active' : ''}" data-filter="${c.slug}">${c.name}</button>`).join('');
+
+document.getElementById('masonryGrid').innerHTML = PHSTUDIO_SEED.portfolio.map(p => `
+  <div class="m-item" data-category="${p.category}" data-lightbox="${p.img}" style="${activeSlug !== 'all' && activeSlug !== p.category ? 'display:none;' : ''}">
+    <img src="${p.img}" alt="${p.title}" loading="lazy">
+    <div class="m-overlay">${p.category} — ${p.title}</div>
+  </div>`).join('');
+
+// Re-bind filter clicks now that buttons exist dynamically
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.masonry .m-item').forEach(item => {
+      item.style.display = (filter === 'all' || item.dataset.category === filter) ? '' : 'none';
+    });
+  });
+});
+
+// Lightbox (lightweight, mirrors main.js behavior)
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('[data-lightbox]');
+  if (!trigger) return;
+  const src = trigger.dataset.lightbox;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(11,11,12,0.94);display:flex;align-items:center;justify-content:center;z-index:999;cursor:zoom-out;';
+  overlay.innerHTML = `<img src="${src}" style="max-width:90%;max-height:86%;border-radius:4px;box-shadow:0 30px 80px rgba(0,0,0,0.6);">`;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+});
+</script>
+</body>
+</html>

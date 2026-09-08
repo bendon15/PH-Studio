@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booking Details — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Booking Details</h1></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content" id="content"></div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('bookings');
+  const db = PHStore.load();
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = parseInt(params.get('id'));
+  const booking = db.bookings.find(b => b.id === bookingId && b.client_id === user.id);
+  const content = document.getElementById('content');
+
+  if (!booking) {
+    content.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Booking not found.</p><a href="my-bookings.html" class="d-btn d-btn-outline" style="margin-top:14px;">Back to Bookings</a></div>`;
+  } else {
+    const pkg = PHSTUDIO_SEED.packages.find(p => p.id === booking.package_id);
+    const invoice = db.invoices.find(i => i.booking_id === booking.id);
+    const wasJustCreated = params.get('created') === '1';
+
+    function renderMessages() {
+      if (!booking.messages.length) return '<p style="color:#767a85;">No messages yet. Send a note to your photographer below.</p>';
+      return booking.messages.map(m => `
+        <div style="display:flex;${m.from==='client'?'justify-content:flex-end;':''}margin-bottom:12px;">
+          <div style="max-width:70%;background:${m.from==='client'?'#14151a':'#f0f2f5'};color:${m.from==='client'?'#fff':'#23252b'};padding:10px 14px;border-radius:12px;">
+            <div style="font-size:12px;opacity:0.7;margin-bottom:3px;">${m.from==='client'?user.full_name:'Marco Villanueva'} · ${new Date(m.at).toLocaleString()}</div>
+            <div>${PHApp.escapeHtml(m.text)}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    content.innerHTML = `
+      ${wasJustCreated ? '<div class="d-alert d-alert-success">Your booking request has been submitted! We will confirm shortly.</div>' : ''}
+      <div class="panel">
+        <div class="panel-head"><h3>${pkg.name} ${PHApp.badgeHtml(booking.status)}</h3><a href="my-bookings.html" class="d-btn d-btn-outline d-btn-sm">← Back to Bookings</a></div>
+        <div class="d-form-row">
+          <div><p style="color:#767a85;font-size:13px;">Category</p><p style="font-weight:500;">${pkg.category}</p></div>
+          <div><p style="color:#767a85;font-size:13px;">Date &amp; Time</p><p style="font-weight:500;">${PHApp.prettyDate(booking.session_date)} at ${PHApp.prettyTime(booking.start_time)}</p></div>
+        </div>
+        <div class="d-form-row" style="margin-top:14px;">
+          <div><p style="color:#767a85;font-size:13px;">Location</p><p style="font-weight:500;">${booking.location||'—'}</p></div>
+          <div><p style="color:#767a85;font-size:13px;">Package Price</p><p style="font-weight:500;">${PHApp.money(pkg.price)}</p></div>
+        </div>
+        <div style="margin-top:14px;"><p style="color:#767a85;font-size:13px;">Event Details</p><p>${PHApp.escapeHtml(booking.details)}</p></div>
+        ${booking.notes ? `<div class="d-alert d-alert-info" style="margin-top:18px;"><strong>Note from your photographer:</strong><br>${PHApp.escapeHtml(booking.notes)}</div>` : ''}
+      </div>
+
+      ${invoice ? `<div class="panel"><div class="panel-head"><h3>Invoice</h3></div>
+        <div class="d-form-row">
+          <div><p style="color:#767a85;font-size:13px;">Invoice #</p><p style="font-weight:500;">${invoice.invoice_number}</p></div>
+          <div><p style="color:#767a85;font-size:13px;">Status</p>${PHApp.badgeHtml(invoice.status)}</div>
+        </div>
+        <div class="d-form-row" style="margin-top:14px;">
+          <div><p style="color:#767a85;font-size:13px;">Total</p><p style="font-weight:500;">${PHApp.money(invoice.total)}</p></div>
+          <div><p style="color:#767a85;font-size:13px;">Paid</p><p style="font-weight:500;">${PHApp.money(invoice.paid)}</p></div>
+        </div>
+      </div>` : ''}
+
+      <div class="panel">
+        <div class="panel-head"><h3>Messages &amp; Notes</h3></div>
+        <div id="msgThread" style="max-height:340px;overflow-y:auto;margin-bottom:20px;">${renderMessages()}</div>
+        <form id="msgForm">
+          <div class="d-form-group"><textarea class="d-form-control" id="msgInput" rows="3" placeholder="Write a message to your photographer..." required></textarea></div>
+          <button type="submit" class="d-btn d-btn-primary">Send Message</button>
+        </form>
+      </div>`;
+
+    document.getElementById('msgForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('msgInput').value.trim();
+      if (!text) return;
+      booking.messages.push({ from: 'client', text, at: new Date().toISOString() });
+      PHStore.save(db);
+      document.getElementById('msgThread').innerHTML = renderMessages();
+      document.getElementById('msgInput').value = '';
+    });
+  }
+}
+</script>
+</body>
+</html>

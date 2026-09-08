@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+<style>
+.booking-step { display: none; }
+.booking-step.active { display: block; }
+.step-dots { display:flex; gap:10px; margin-bottom:28px; }
+.step-dot { width:32px; height:32px; border-radius:50%; background:#eceef1; color:#8a8d97; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+.step-dot.active { background: var(--d-gold); color:#14151a; }
+.step-dot.done { background:#e4f7e9; color:#1f8a44; }
+.package-select-card { border:1px solid var(--d-border); border-radius:10px; padding:18px; cursor:pointer; transition: all 0.2s ease; }
+.package-select-card:hover { border-color: var(--d-gold); }
+.package-select-card.selected { border-color: var(--d-gold); background: #fff8ec; }
+.form-hint { font-size:12.5px; margin-top:6px; color:#767a85; }
+.invalid { border-color:#d1495b !important; }
+</style>
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Book a Session</h1></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div id="successAlert"></div>
+    <div class="panel">
+      <div class="step-dots">
+        <div class="step-dot active" data-dot="0">1</div><div class="step-dot" data-dot="1">2</div>
+        <div class="step-dot" data-dot="2">3</div><div class="step-dot" data-dot="3">4</div>
+      </div>
+
+      <div class="booking-step active" data-step="0">
+        <h3 style="margin-bottom:6px;">Choose Your Package</h3>
+        <p style="color:#767a85;margin-bottom:20px;font-size:14px;">Select the session type that fits your occasion.</p>
+        <div id="packageCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;"></div>
+        <div style="margin-top:24px;"><button type="button" class="d-btn d-btn-primary" data-next>Continue</button></div>
+      </div>
+
+      <div class="booking-step" data-step="1">
+        <h3 style="margin-bottom:6px;">Pick a Date &amp; Time</h3>
+        <p style="color:#767a85;margin-bottom:20px;font-size:14px;">Availability updates live based on the studio calendar.</p>
+        <div class="d-form-row">
+          <div class="d-form-group"><label for="session_date">Session Date</label><input class="d-form-control" type="date" id="session_date" required></div>
+          <div class="d-form-group"><label for="start_time">Available Time Slots</label><select class="d-form-control" id="start_time" required><option value="">Select a date first</option></select><div class="form-hint" id="availabilityMsg"></div></div>
+        </div>
+        <div class="d-form-group"><label for="location">Session Location</label><input class="d-form-control" type="text" id="location" required placeholder="e.g. Tagaytay Wedding Garden"></div>
+        <div style="margin-top:10px;display:flex;gap:10px;"><button type="button" class="d-btn d-btn-outline" data-prev>Back</button><button type="button" class="d-btn d-btn-primary" data-next>Continue</button></div>
+      </div>
+
+      <div class="booking-step" data-step="2">
+        <h3 style="margin-bottom:6px;">Tell Us About Your Session</h3>
+        <div class="d-form-group"><label for="event_details">Event Details</label><textarea class="d-form-control" id="event_details" rows="5" required placeholder="Tell us about the occasion, number of guests, style preferences, etc."></textarea></div>
+        <div class="d-form-group"><label for="reference_images">Reference Images (optional, demo preview only)</label><input class="d-form-control" type="file" id="reference_images" accept="image/*" multiple></div>
+        <div style="margin-top:10px;display:flex;gap:10px;"><button type="button" class="d-btn d-btn-outline" data-prev>Back</button><button type="button" class="d-btn d-btn-primary" data-next>Review</button></div>
+      </div>
+
+      <div class="booking-step" data-step="3">
+        <h3 style="margin-bottom:6px;">Review &amp; Submit</h3>
+        <div class="d-alert d-alert-info">Your booking status will start as <strong>Pending</strong> until confirmed by the photographer.</div>
+        <div style="margin-top:10px;display:flex;gap:10px;"><button type="button" class="d-btn d-btn-outline" data-prev>Back</button><button type="button" class="d-btn d-btn-gold" id="submitBooking">Submit Booking Request</button></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('book');
+
+  const params = new URLSearchParams(window.location.search);
+  let selectedPackageId = parseInt(params.get('package')) || null;
+
+  document.getElementById('packageCards').innerHTML = PHSTUDIO_SEED.packages.map(pkg => `
+    <div class="package-select-card ${selectedPackageId === pkg.id ? 'selected' : ''}" data-id="${pkg.id}">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--d-gold);margin-bottom:6px;">${pkg.category}</div>
+      <h4 style="margin-bottom:8px;">${pkg.name}</h4>
+      <div style="font-weight:600;font-size:18px;">${PHApp.money(pkg.price)}</div>
+      <div style="color:#767a85;font-size:13px;margin-top:4px;">${pkg.duration} hour(s)</div>
+    </div>`).join('');
+
+  document.querySelectorAll('.package-select-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.package-select-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedPackageId = parseInt(card.dataset.id);
+    });
+  });
+
+  // Step navigation
+  let currentStep = 0;
+  const steps = document.querySelectorAll('.booking-step');
+  const dots = document.querySelectorAll('.step-dot');
+  function showStep(i) {
+    steps.forEach((s, idx) => s.classList.toggle('active', idx === i));
+    dots.forEach((d, idx) => { d.classList.toggle('active', idx === i); d.classList.toggle('done', idx < i); });
+    currentStep = i;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  document.querySelectorAll('[data-next]').forEach(btn => btn.addEventListener('click', () => {
+    if (currentStep === 0 && !selectedPackageId) { alert('Please select a package.'); return; }
+    const required = steps[currentStep].querySelectorAll('[required]');
+    let valid = true;
+    required.forEach(input => { if (!input.value) { valid = false; input.classList.add('invalid'); } else { input.classList.remove('invalid'); } });
+    if (!valid) return;
+    if (currentStep < steps.length - 1) showStep(currentStep + 1);
+  }));
+  document.querySelectorAll('[data-prev]').forEach(btn => btn.addEventListener('click', () => { if (currentStep > 0) showStep(currentStep - 1); }));
+
+  // Live availability
+  const db = PHStore.load();
+  const dateInput = document.getElementById('session_date');
+  dateInput.min = PHStore.today();
+  const timeSelect = document.getElementById('start_time');
+  const msg = document.getElementById('availabilityMsg');
+
+  dateInput.addEventListener('change', () => {
+    const date = dateInput.value;
+    const windows = db.availability.filter(a => a.date === date && !a.blocked);
+    const booked = db.bookings.filter(b => b.session_date === date && b.status !== 'cancelled').map(b => b.start_time);
+    let slots = [];
+    windows.forEach(w => {
+      let [h,m] = w.start.split(':').map(Number);
+      const [endH] = w.end.split(':').map(Number);
+      while (h < endH) {
+        const startStr = String(h).padStart(2,'0') + ':00';
+        if (!booked.includes(startStr)) slots.push(startStr);
+        h++;
+      }
+    });
+    if (!windows.length) {
+      for (let h = 9; h < 17; h++) {
+        const startStr = String(h).padStart(2,'0') + ':00';
+        if (!booked.includes(startStr)) slots.push(startStr);
+      }
+    }
+    if (slots.length) {
+      timeSelect.innerHTML = slots.map(s => `<option value="${s}">${PHApp.prettyTime(s)}</option>`).join('');
+      msg.textContent = `${slots.length} time slot(s) available on this date.`;
+      msg.style.color = '#1f8a44';
+    } else {
+      timeSelect.innerHTML = '<option value="">No slots available</option>';
+      msg.textContent = 'No availability on this date. Please choose another.';
+      msg.style.color = '#b23434';
+    }
+  });
+
+  document.getElementById('submitBooking').addEventListener('click', () => {
+    const pkg = PHSTUDIO_SEED.packages.find(p => p.id === selectedPackageId);
+    const id = db.nextIds.booking++;
+    db.bookings.push({
+      id, client_id: user.id, photographer_id: 2, package_id: selectedPackageId,
+      session_date: dateInput.value, start_time: timeSelect.value,
+      location: document.getElementById('location').value,
+      details: document.getElementById('event_details').value,
+      status: 'pending', notes: '', references: [], messages: [],
+      created_at: new Date().toISOString(),
+    });
+    const invId = db.nextIds.invoice++;
+    db.invoices.push({ id: invId, booking_id: id, invoice_number: `INV-2026-${String(invId).padStart(4,'0')}`, total: pkg.price, paid: 0, status: 'unpaid' });
+    PHStore.save(db);
+    window.location.href = `booking-detail.html?id=${id}&created=1`;
+  });
+
+  showStep(0);
+}
+</script>
+</body>
+</html>

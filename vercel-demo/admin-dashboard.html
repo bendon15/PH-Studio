@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Dashboard — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Studio Dashboard</h1><div class="subtitle">Overview of bookings, clients, and revenue.</div></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="panel">
+      <div class="panel-head"><h3>Booking Status Breakdown</h3></div>
+      <div id="statusBreakdown" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Recent Bookings</h3><a href="admin-bookings.html" class="d-btn d-btn-outline d-btn-sm">Manage All</a></div>
+      <div id="recentWrap"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('admin', 'photographer');
+if (user) {
+  PHApp.renderDashboardSidebar('dashboard');
+  const db = PHStore.load();
+  const usersById = Object.fromEntries(db.users.map(u => [u.id, u]));
+  const packagesById = Object.fromEntries(PHSTUDIO_SEED.packages.map(p => [p.id, p]));
+
+  const totalClients = db.users.filter(u => u.role === 'client').length;
+  const totalBookings = db.bookings.length;
+  const pending = db.bookings.filter(b => b.status === 'pending').length;
+  const upcoming = db.bookings.filter(b => b.session_date >= PHStore.today() && ['pending','confirmed'].includes(b.status)).length;
+  const revenue = db.invoices.reduce((s,i) => s + i.paid, 0);
+  const outstanding = db.invoices.reduce((s,i) => s + (i.status !== 'paid' ? (i.total - i.paid) : 0), 0);
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total Clients</div><div class="stat-value">${totalClients}</div><div class="stat-delta">Registered accounts</div><div class="stat-icon">👥</div></div>
+    <div class="stat-card"><div class="stat-label">Total Bookings</div><div class="stat-value">${totalBookings}</div><div class="stat-delta">${pending} awaiting review</div><div class="stat-icon">📅</div></div>
+    <div class="stat-card"><div class="stat-label">Upcoming Sessions</div><div class="stat-value">${upcoming}</div><div class="stat-delta">Next 90 days</div><div class="stat-icon">🗓️</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue Collected</div><div class="stat-value" style="font-size:24px;">${PHApp.money(revenue)}</div><div class="stat-delta ${outstanding>0?'down':''}">${PHApp.money(outstanding)} outstanding</div><div class="stat-icon">💰</div></div>`;
+
+  const statuses = ['pending','confirmed','in_progress','completed','cancelled'];
+  document.getElementById('statusBreakdown').innerHTML = statuses.map(s => {
+    const count = db.bookings.filter(b => b.status === s).length;
+    return `<div style="text-align:center;padding:18px;border:1px solid var(--d-border);border-radius:10px;"><div style="font-size:26px;font-weight:600;">${count}</div><div style="margin-top:6px;">${PHApp.badgeHtml(s)}</div></div>`;
+  }).join('');
+
+  const recent = [...db.bookings].sort((a,b) => b.created_at.localeCompare(a.created_at)).slice(0,6);
+  document.getElementById('recentWrap').innerHTML = `<div class="table-wrap"><table class="d-table"><thead><tr><th>Client</th><th>Package</th><th>Date</th><th>Status</th></tr></thead><tbody>
+    ${recent.map(b => `<tr><td><a href="admin-bookings.html?id=${b.id}">${usersById[b.client_id]?.full_name||''}</a></td><td>${packagesById[b.package_id]?.name||''}</td><td>${PHApp.prettyDate(b.session_date)}</td><td>${PHApp.badgeHtml(b.status)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+</script>
+</body>
+</html>

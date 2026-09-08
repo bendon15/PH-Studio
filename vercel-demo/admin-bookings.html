@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookings — PHStudio Admin (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Bookings</h1><div class="subtitle">Manage all client booking requests.</div></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div class="panel" id="detailPanel" style="display:none;"></div>
+    <div class="panel">
+      <div class="panel-head"><h3>All Bookings</h3><div id="statusFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+      <div id="bookingsWrap"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('admin', 'photographer');
+if (user) {
+  PHApp.renderDashboardSidebar('bookings');
+  const db = PHStore.load();
+  const usersById = Object.fromEntries(db.users.map(u => [u.id, u]));
+  const packagesById = Object.fromEntries(PHSTUDIO_SEED.packages.map(p => [p.id, p]));
+  const params = new URLSearchParams(window.location.search);
+  let statusFilter = params.get('status') || 'all';
+  const focusedId = parseInt(params.get('id')) || null;
+
+  const statuses = ['all','pending','confirmed','in_progress','completed','cancelled'];
+  document.getElementById('statusFilters').innerHTML = statuses.map(s =>
+    `<a href="?status=${s}" class="d-btn d-btn-sm ${statusFilter===s?'d-btn-primary':'d-btn-outline'}">${s==='all'?'All':PHApp.statusLabel(s)}</a>`).join('');
+
+  function renderDetail(booking) {
+    const pkg = packagesById[booking.package_id];
+    const client = usersById[booking.client_id];
+    const panel = document.getElementById('detailPanel');
+    panel.style.display = 'block';
+    panel.innerHTML = `
+      <div class="panel-head"><h3>${client.full_name} — ${pkg.name}</h3><button class="d-btn d-btn-outline d-btn-sm" id="closeDetail">Close</button></div>
+      <div class="d-form-row">
+        <div><p style="color:var(--d-muted);font-size:13px;">Client Email</p><p style="font-weight:500;">${client.email}</p></div>
+        <div><p style="color:var(--d-muted);font-size:13px;">Client Phone</p><p style="font-weight:500;">${client.phone||'—'}</p></div>
+      </div>
+      <div class="d-form-row" style="margin-top:14px;">
+        <div><p style="color:var(--d-muted);font-size:13px;">Date &amp; Time</p><p style="font-weight:500;">${PHApp.prettyDate(booking.session_date)} at ${PHApp.prettyTime(booking.start_time)}</p></div>
+        <div><p style="color:var(--d-muted);font-size:13px;">Location</p><p style="font-weight:500;">${booking.location||'—'}</p></div>
+      </div>
+      <div style="margin-top:14px;"><p style="color:var(--d-muted);font-size:13px;">Event Details</p><p>${PHApp.escapeHtml(booking.details)}</p></div>
+
+      <div style="margin-top:20px;"><label style="font-size:13px;font-weight:500;display:block;margin-bottom:8px;">Update Status</label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <select class="d-form-control" id="statusSelect" style="max-width:220px;">
+            ${['pending','confirmed','in_progress','completed','cancelled'].map(s => `<option value="${s}" ${booking.status===s?'selected':''}>${PHApp.statusLabel(s)}</option>`).join('')}
+          </select>
+          <button class="d-btn d-btn-primary" id="saveStatus">Update Status</button>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;"><label style="font-size:13px;font-weight:500;display:block;margin-bottom:8px;">Notes to Client</label>
+        <textarea class="d-form-control" id="notesInput" rows="3">${booking.notes||''}</textarea>
+        <button class="d-btn d-btn-outline" id="saveNotes" style="margin-top:10px;">Save Notes</button>
+      </div>`;
+
+    document.getElementById('closeDetail').addEventListener('click', () => { panel.style.display = 'none'; panel.innerHTML=''; });
+    document.getElementById('saveStatus').addEventListener('click', () => {
+      booking.status = document.getElementById('statusSelect').value;
+      PHStore.save(db);
+      render();
+      renderDetail(booking);
+    });
+    document.getElementById('saveNotes').addEventListener('click', () => {
+      booking.notes = document.getElementById('notesInput').value;
+      PHStore.save(db);
+      alert('Notes saved.');
+    });
+  }
+
+  function render() {
+    let list = db.bookings.slice();
+    if (statusFilter !== 'all') list = list.filter(b => b.status === statusFilter);
+    list.sort((a,b) => b.session_date.localeCompare(a.session_date));
+    document.getElementById('bookingsWrap').innerHTML = `<div class="table-wrap"><table class="d-table"><thead><tr><th>Client</th><th>Package</th><th>Date</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>
+      ${list.map(b => `<tr>
+        <td>${usersById[b.client_id]?.full_name||''}<br><span style="color:var(--d-muted);font-size:12px;">${usersById[b.client_id]?.email||''}</span></td>
+        <td>${packagesById[b.package_id]?.name||''}</td>
+        <td>${PHApp.prettyDate(b.session_date)}</td>
+        <td>${PHApp.prettyTime(b.start_time)}</td>
+        <td>${PHApp.badgeHtml(b.status)}</td>
+        <td><button class="d-btn d-btn-outline d-btn-sm manage-btn" data-id="${b.id}">Manage</button></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+
+    document.querySelectorAll('.manage-btn').forEach(btn => btn.addEventListener('click', () => {
+      const b = db.bookings.find(bk => bk.id === parseInt(btn.dataset.id));
+      renderDetail(b);
+      document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+    }));
+  }
+  render();
+
+  if (focusedId) {
+    const b = db.bookings.find(bk => bk.id === focusedId);
+    if (b) renderDetail(b);
+  }
+}
+</script>
+</body>
+</html>

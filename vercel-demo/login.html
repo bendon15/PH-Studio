@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a href="index.html" class="brand">PH<span>Studio</span></a>
+    <p class="auth-subtitle">Welcome back</p>
+    <div class="demo-hint">
+      <strong>Demo accounts</strong> (password for all: <code>Demo@1234</code>)<br>
+      Admin: admin@phstudio.demo &middot; Photographer: marco@phstudio.demo<br>
+      Client: juan.delacruz@example.com
+    </div>
+    <div id="loginAlert"></div>
+    <form id="loginForm">
+      <div class="d-form-group"><label for="email">Email Address</label><input class="d-form-control" type="email" id="email" required autofocus></div>
+      <div class="d-form-group"><label for="password">Password</label><input class="d-form-control" type="password" id="password" required></div>
+      <button type="submit" class="d-btn d-btn-gold" style="width:100%;padding:13px;">Log In</button>
+    </form>
+    <p class="auth-footer-link" id="registerLinkWrap">New to PHStudio? <a href="register.html" id="registerLink">Create an account</a></p>
+    <p class="auth-footer-link"><a href="index.html" style="color:#767a85;">← Back to homepage</a></p>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const params = new URLSearchParams(window.location.search);
+const redirectTo = params.get('redirect');
+if (redirectTo) document.getElementById('registerLink').href = 'register.html?redirect=' + encodeURIComponent(redirectTo);
+
+document.getElementById('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const result = PHApp.login(email, password);
+  if (!result.success) {
+    document.getElementById('loginAlert').innerHTML = `<div class="d-alert d-alert-error">${result.error}</div>`;
+    return;
+  }
+  const target = redirectTo || (result.user.role === 'client' ? 'client-dashboard.html' : 'admin-dashboard.html');
+  window.location.href = target;
+});
+</script>
+</body>
+</html>

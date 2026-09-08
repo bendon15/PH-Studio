@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Bookings — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>My Bookings</h1></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div class="panel">
+      <div class="panel-head"><h3>Booking History</h3><div id="statusFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+      <div id="bookingsWrap"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('bookings');
+  const db = PHStore.load();
+  const packagesById = Object.fromEntries(PHSTUDIO_SEED.packages.map(p => [p.id, p]));
+  const params = new URLSearchParams(window.location.search);
+  let statusFilter = params.get('status') || 'all';
+
+  const statuses = ['all','pending','confirmed','in_progress','completed','cancelled'];
+  document.getElementById('statusFilters').innerHTML = statuses.map(s =>
+    `<a href="?status=${s}" class="d-btn d-btn-sm ${statusFilter===s?'d-btn-primary':'d-btn-outline'}">${s === 'all' ? 'All' : PHApp.statusLabel(s)}</a>`).join('');
+
+  function render() {
+    let list = db.bookings.filter(b => b.client_id === user.id);
+    if (statusFilter !== 'all') list = list.filter(b => b.status === statusFilter);
+    list.sort((a,b) => b.session_date.localeCompare(a.session_date));
+    const wrap = document.getElementById('bookingsWrap');
+    if (!list.length) {
+      wrap.innerHTML = `<div class="empty-state"><div class="icon">🗂️</div><p>No bookings found for this filter.</p><a href="book-session.html" class="d-btn d-btn-gold" style="margin-top:14px;">Book a Session</a></div>`;
+      return;
+    }
+    wrap.innerHTML = `<div class="table-wrap"><table class="d-table"><thead><tr><th>Package</th><th>Date</th><th>Time</th><th>Location</th><th>Status</th><th></th></tr></thead><tbody>
+      ${list.map(b => `<tr>
+        <td>${packagesById[b.package_id]?.name||''}</td>
+        <td>${PHApp.prettyDate(b.session_date)}</td>
+        <td>${PHApp.prettyTime(b.start_time)}</td>
+        <td>${b.location || '—'}</td>
+        <td>${PHApp.badgeHtml(b.status)}</td>
+        <td><a href="booking-detail.html?id=${b.id}" class="d-btn d-btn-outline d-btn-sm">View</a></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  }
+  render();
+}
+</script>
+</body>
+</html>

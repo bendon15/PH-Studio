@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar">
+    <div><h1 id="pageTitle">Welcome back</h1><div class="subtitle">Here's what's happening with your PHStudio sessions.</div></div>
+    <a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a>
+  </div>
+  <div class="dash-content">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Upcoming Session</div><div class="stat-value" style="font-size:18px;" id="nextSessionDate">None Scheduled</div><div class="stat-delta" id="nextSessionPkg">Book your next session</div><div class="stat-icon">📅</div></div>
+      <div class="stat-card"><div class="stat-label">Active Bookings</div><div class="stat-value" id="activeCount">0</div><div class="stat-delta" id="pendingCount">0 pending review</div><div class="stat-icon">🗂️</div></div>
+      <div class="stat-card"><div class="stat-label">Published Galleries</div><div class="stat-value" id="galleryCount">0</div><div class="stat-delta">Ready to view</div><div class="stat-icon">🖼️</div></div>
+      <div class="stat-card"><div class="stat-label">Balance Due</div><div class="stat-value" id="balanceDue">₱0.00</div><div class="stat-delta" id="balanceNote">All settled</div><div class="stat-icon">🧾</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Recent Bookings</h3><a href="my-bookings.html" class="d-btn d-btn-outline d-btn-sm">View All</a></div>
+      <div id="recentBookingsWrap"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Quick Actions</h3></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        <a href="book-session.html" class="d-btn d-btn-primary" style="width:100%;">+ New Booking</a>
+        <a href="gallery.html" class="d-btn d-btn-outline" style="width:100%;">View My Galleries</a>
+        <a href="invoices.html" class="d-btn d-btn-outline" style="width:100%;">Check Invoices</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('dashboard');
+  document.getElementById('pageTitle').textContent = 'Welcome back, ' + user.full_name.split(' ')[0];
+
+  const db = PHStore.load();
+  const myBookings = db.bookings.filter(b => b.client_id === user.id);
+  const packagesById = Object.fromEntries(PHSTUDIO_SEED.packages.map(p => [p.id, p]));
+
+  const upcoming = myBookings.filter(b => b.session_date >= PHStore.today() && !['cancelled','completed'].includes(b.status))
+                              .sort((a,b) => a.session_date.localeCompare(b.session_date))[0];
+  if (upcoming) {
+    document.getElementById('nextSessionDate').textContent = PHApp.prettyDate(upcoming.session_date);
+    document.getElementById('nextSessionPkg').textContent = packagesById[upcoming.package_id]?.name || '';
+  }
+
+  const active = myBookings.filter(b => ['pending','confirmed','in_progress'].includes(b.status)).length;
+  const pending = myBookings.filter(b => b.status === 'pending').length;
+  document.getElementById('activeCount').textContent = active;
+  document.getElementById('pendingCount').textContent = pending + ' pending review';
+
+  const myGalleries = db.galleries.filter(g => g.client_id === user.id);
+  document.getElementById('galleryCount').textContent = myGalleries.length;
+
+  const myInvoices = db.invoices.filter(inv => {
+    const b = db.bookings.find(bk => bk.id === inv.booking_id);
+    return b && b.client_id === user.id;
+  });
+  const balance = myInvoices.reduce((sum, inv) => sum + (inv.status !== 'paid' ? (inv.total - inv.paid) : 0), 0);
+  document.getElementById('balanceDue').textContent = PHApp.money(balance);
+  if (balance > 0) document.getElementById('balanceNote').textContent = 'Payment pending';
+
+  const recent = [...myBookings].sort((a,b) => b.created_at.localeCompare(a.created_at)).slice(0,5);
+  const wrap = document.getElementById('recentBookingsWrap');
+  if (!recent.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">📸</div><p>You haven't booked a session yet.</p><a href="book-session.html" class="d-btn d-btn-gold" style="margin-top:14px;">Book Your First Session</a></div>`;
+  } else {
+    wrap.innerHTML = `<div class="table-wrap"><table class="d-table"><thead><tr><th>Package</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>
+      ${recent.map(b => `<tr><td>${packagesById[b.package_id]?.name || ''}</td><td>${PHApp.prettyDate(b.session_date)}</td><td>${PHApp.badgeHtml(b.status)}</td><td><a href="booking-detail.html?id=${b.id}" class="d-btn d-btn-outline d-btn-sm">View</a></td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+}
+</script>
+</body>
+</html>

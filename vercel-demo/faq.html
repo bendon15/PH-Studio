@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="siteHeader"></div>
+
+<section class="page-hero">
+  <div class="container"><span class="eyebrow">Need Help?</span><h1>Frequently Asked Questions</h1>
+  <div class="breadcrumb"><a href="index.html">Home</a> / FAQ</div></div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="faq-list reveal" id="faqList"></div>
+    <div class="text-center mt-40">
+      <p style="color:var(--grey);margin-bottom:18px;">Still have questions?</p>
+      <a href="contact.html" class="btn btn-outline-dark btn-lg">Contact Us</a>
+    </div>
+  </div>
+</section>
+
+<div id="siteFooter"></div>
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE=''; PHApp.renderHeader('faq'); PHApp.renderFooter();
+document.getElementById('faqList').innerHTML = PHSTUDIO_SEED.faqs.map(f => `
+  <div class="faq-item">
+    <button class="faq-question"><span>${f.q}</span><span class="icon">+</span></button>
+    <div class="faq-answer"><p>${f.a}</p></div>
+  </div>`).join('');
+document.querySelectorAll('.faq-item').forEach(item => {
+  item.querySelector('.faq-question').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    item.parentElement.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+});
+</script>
+</body>
+</html>

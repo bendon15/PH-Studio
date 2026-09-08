@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galleries — PHStudio Admin (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Private Galleries</h1><div class="subtitle">Create and manage client galleries.</div></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div class="panel">
+      <div class="panel-head"><h3>Create New Gallery</h3></div>
+      <form id="createForm">
+        <div class="d-form-row">
+          <div class="d-form-group"><label>Gallery Title</label><input class="d-form-control" type="text" id="title" placeholder="e.g. Juan &amp; Maria — Wedding Gallery" required></div>
+          <div class="d-form-group"><label>Client</label><select class="d-form-control" id="clientSelect" required></select></div>
+        </div>
+        <div class="d-form-group"><label>Photographer Notes (visible to client)</label><textarea class="d-form-control" id="notes" rows="2"></textarea></div>
+        <div class="d-form-group" style="display:flex;gap:20px;">
+          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="allowDownload" checked> Allow Downloads</label>
+          <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="isPublished" checked> Publish Immediately</label>
+        </div>
+        <div class="d-alert d-alert-info">Demo note: cover image and photos are auto-assigned from our sample library since this static demo has no file server.</div>
+        <button type="submit" class="d-btn d-btn-primary">Create Gallery</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>All Galleries</h3></div>
+      <div id="galleriesWrap"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('admin', 'photographer');
+if (user) {
+  PHApp.renderDashboardSidebar('galleries');
+  const db = PHStore.load();
+  const clients = db.users.filter(u => u.role === 'client');
+  const usersById = Object.fromEntries(db.users.map(u => [u.id, u]));
+
+  document.getElementById('clientSelect').innerHTML = '<option value="">Select client</option>' +
+    clients.map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+
+  const sampleCovers = [
+    'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200',
+    'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=1200',
+    'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200',
+  ];
+  const samplePhotos = [
+    { img: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=1400', caption: 'Sample photo 1' },
+    { img: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1400', caption: 'Sample photo 2' },
+    { img: 'https://images.unsplash.com/photo-1544126592-807ade215a0b?w=1400', caption: 'Sample photo 3' },
+  ];
+
+  function render() {
+    document.getElementById('galleriesWrap').innerHTML = db.galleries.length ? `<div class="table-wrap"><table class="d-table"><thead><tr><th>Title</th><th>Client</th><th>Photos</th><th>Published</th></tr></thead><tbody>
+      ${db.galleries.map(g => `<tr><td>${g.title}</td><td>${usersById[g.client_id]?.full_name||''}</td><td>${g.photos.length}</td><td><span class="badge ${g.is_published !== false ? 'badge-completed' : 'badge-pending'}">${g.is_published !== false ? 'Published' : 'Draft'}</span></td></tr>`).join('')}
+    </tbody></table></div>` : `<div class="empty-state"><div class="icon">🖼️</div><p>No galleries created yet.</p></div>`;
+  }
+  render();
+
+  document.getElementById('createForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = db.nextIds.gallery++;
+    const clientId = parseInt(document.getElementById('clientSelect').value);
+    db.galleries.push({
+      id, client_id: clientId,
+      title: document.getElementById('title').value,
+      cover: sampleCovers[id % sampleCovers.length],
+      notes: document.getElementById('notes').value,
+      allow_download: document.getElementById('allowDownload').checked,
+      is_published: document.getElementById('isPublished').checked,
+      share_token: 'gal_demo_' + id,
+      photos: samplePhotos.map((p, i) => ({ id: db.nextIds.photo++, img: p.img, caption: p.caption })),
+    });
+    PHStore.save(db);
+    e.target.reset();
+    render();
+  });
+}
+</script>
+</body>
+</html>

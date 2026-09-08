@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoices — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1>Invoices &amp; Payments</h1></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content">
+    <div class="panel">
+      <div class="panel-head"><h3>Your Invoices</h3></div>
+      <div id="invoicesWrap"></div>
+    </div>
+  </div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('invoices');
+  const db = PHStore.load();
+  const packagesById = Object.fromEntries(PHSTUDIO_SEED.packages.map(p => [p.id, p]));
+  const myInvoices = db.invoices.filter(inv => {
+    const b = db.bookings.find(bk => bk.id === inv.booking_id);
+    return b && b.client_id === user.id;
+  }).map(inv => ({ ...inv, booking: db.bookings.find(b => b.id === inv.booking_id) }));
+
+  const wrap = document.getElementById('invoicesWrap');
+  if (!myInvoices.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="icon">🧾</div><p>No invoices yet.</p></div>`;
+  } else {
+    wrap.innerHTML = `<div class="table-wrap"><table class="d-table"><thead><tr><th>Invoice #</th><th>Package</th><th>Session Date</th><th>Total</th><th>Paid</th><th>Status</th></tr></thead><tbody>
+      ${myInvoices.map(inv => `<tr>
+        <td>${inv.invoice_number}</td>
+        <td>${packagesById[inv.booking.package_id]?.name||''}</td>
+        <td>${PHApp.prettyDate(inv.booking.session_date)}</td>
+        <td>${PHApp.money(inv.total)}</td>
+        <td>${PHApp.money(inv.paid)}</td>
+        <td>${PHApp.badgeHtml(inv.status)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  }
+}
+</script>
+</body>
+</html>

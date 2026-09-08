@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gallery — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard">
+<aside class="dash-sidebar" id="dashSidebar"></aside>
+<main class="dash-main">
+  <div class="dash-topbar"><div><h1 id="galleryTitleTop">Gallery</h1></div><a href="index.html" class="d-btn d-btn-outline d-btn-sm">View Public Site ↗</a></div>
+  <div class="dash-content" id="content"></div>
+</main>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const user = PHApp.requireRole('client');
+if (user) {
+  PHApp.renderDashboardSidebar('galleries');
+  const db = PHStore.load();
+  const params = new URLSearchParams(window.location.search);
+  const galleryId = parseInt(params.get('id'));
+  const gallery = db.galleries.find(g => g.id === galleryId && g.client_id === user.id);
+  const content = document.getElementById('content');
+
+  if (!gallery) {
+    content.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Gallery not found.</p><a href="gallery.html" class="d-btn d-btn-outline" style="margin-top:14px;">Back to Galleries</a></div>`;
+  } else {
+    document.getElementById('galleryTitleTop').textContent = gallery.title;
+    const shareUrl = window.location.origin + window.location.pathname.replace('gallery-view.html','gallery-share.html') + '?token=' + gallery.share_token;
+
+    function isFavorited(photoId) { return db.favorites.some(f => f.photo_id === photoId && f.client_id === user.id); }
+
+    function renderPhotos() {
+      return gallery.photos.map(p => `
+        <div class="gallery-photo">
+          <img src="${p.img}" alt="${p.caption||''}">
+          <div class="gallery-photo-actions">
+            <button class="icon-btn fav-btn ${isFavorited(p.id) ? 'favorited' : ''}" data-photo-id="${p.id}">${isFavorited(p.id) ? '♥' : '♡'}</button>
+            ${gallery.allow_download ? `<a href="${p.img}" download class="icon-btn" title="Download">⬇</a>` : ''}
+          </div>
+          ${p.caption ? `<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(0,0,0,0.7),transparent);color:#fff;padding:10px;font-size:12.5px;">${p.caption}</div>` : ''}
+        </div>`).join('');
+    }
+
+    content.innerHTML = `
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>${gallery.title}</h3><p style="color:#767a85;font-size:13.5px;margin-top:4px;">${gallery.photos.length} photos</p></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button id="copyShareLink" class="d-btn d-btn-outline d-btn-sm">🔗 Copy Share Link</button>
+            ${gallery.allow_download ? '<button id="downloadAllBtn" class="d-btn d-btn-gold d-btn-sm">⬇ Download All</button>' : ''}
+          </div>
+        </div>
+        ${gallery.notes ? `<div class="d-alert d-alert-info"><strong>Note from your photographer:</strong><br>${gallery.notes}</div>` : ''}
+        <div class="gallery-grid" id="photoGrid">${renderPhotos()}</div>
+      </div>`;
+
+    document.getElementById('copyShareLink').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(shareUrl); } catch (err) {}
+      e.target.textContent = 'Link Copied!';
+      setTimeout(() => { e.target.textContent = '🔗 Copy Share Link'; }, 2000);
+    });
+
+    document.getElementById('downloadAllBtn')?.addEventListener('click', () => {
+      gallery.photos.forEach((p, i) => setTimeout(() => {
+        const a = document.createElement('a'); a.href = p.img; a.download = `phstudio-photo-${i+1}.jpg`; a.target = '_blank'; a.click();
+      }, i * 400));
+    });
+
+    document.getElementById('photoGrid').addEventListener('click', (e) => {
+      const btn = e.target.closest('.fav-btn');
+      if (!btn) return;
+      const photoId = parseInt(btn.dataset.photoId);
+      const existingIdx = db.favorites.findIndex(f => f.photo_id === photoId && f.client_id === user.id);
+      if (existingIdx >= 0) { db.favorites.splice(existingIdx, 1); btn.classList.remove('favorited'); btn.textContent = '♡'; }
+      else { db.favorites.push({ photo_id: photoId, client_id: user.id }); btn.classList.add('favorited'); btn.textContent = '♥'; }
+      PHStore.save(db);
+    });
+  }
+}
+</script>
+</body>
+</html>

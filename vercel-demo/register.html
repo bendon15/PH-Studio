@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — PHStudio (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a href="index.html" class="brand">PH<span>Studio</span></a>
+    <p class="auth-subtitle">Create your free client account</p>
+    <div class="demo-hint">Portfolio Demo — Not a real photography booking service. Accounts created here are stored only in your browser's local storage.</div>
+    <div id="registerAlert"></div>
+    <form id="registerForm">
+      <div class="d-form-group"><label for="full_name">Full Name</label><input class="d-form-control" type="text" id="full_name" required></div>
+      <div class="d-form-group"><label for="email">Email Address</label><input class="d-form-control" type="email" id="email" required></div>
+      <div class="d-form-group"><label for="phone">Phone Number</label><input class="d-form-control" type="text" id="phone"></div>
+      <div class="d-form-row">
+        <div class="d-form-group"><label for="password">Password</label><input class="d-form-control" type="password" id="password" required minlength="8"></div>
+        <div class="d-form-group"><label for="password_confirm">Confirm Password</label><input class="d-form-control" type="password" id="password_confirm" required minlength="8"></div>
+      </div>
+      <button type="submit" class="d-btn d-btn-gold" style="width:100%;padding:13px;">Create Account</button>
+    </form>
+    <p class="auth-footer-link">Already have an account? <a href="login.html" id="loginLink">Log in</a></p>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+<script>
+window.BASE = '';
+const params = new URLSearchParams(window.location.search);
+const redirectTo = params.get('redirect');
+if (redirectTo) document.getElementById('loginLink').href = 'login.html?redirect=' + encodeURIComponent(redirectTo);
+
+document.getElementById('registerForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const full_name = document.getElementById('full_name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('password_confirm').value;
+  const alertBox = document.getElementById('registerAlert');
+
+  if (password !== confirm) {
+    alertBox.innerHTML = '<div class="d-alert d-alert-error">Passwords do not match.</div>';
+    return;
+  }
+  const result = PHApp.registerClient({ full_name, email, phone, password });
+  if (!result.success) {
+    alertBox.innerHTML = `<div class="d-alert d-alert-error">${result.error}</div>`;
+    return;
+  }
+  window.location.href = redirectTo || 'client-dashboard.html';
+});
+</script>
+</body>
+</html>
