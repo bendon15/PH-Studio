@@ -148,7 +148,7 @@ const PHApp = (() => {
             <a href="${BASE}contact.html">Send a Message</a></div>
         </div>
         <div class="container footer-bottom">
-          <p>&copy; ${new Date().getFullYear()} PHStudio. All rights reserved.</p>
+          <p>&copy; ${new Date().getFullYear()} PHStudio BenDon™. All rights reserved.</p>
           <p class="footer-demo-note">Portfolio Demo — Not a real photography booking service.</p>
         </div>
       </footer>`;
