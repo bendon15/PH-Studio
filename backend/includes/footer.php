@@ -35,7 +35,7 @@
     </div>
 
     <div class="container footer-bottom">
-      <p>&copy; <?= date('Y') ?> PHStudio. All rights reserved.</p>
+      <p>&copy; <?= date('Y') ?> PHStudio. BenDon™ All rights reserved.</p>
       <p class="footer-demo-note">Portfolio Demo — Not a real photography booking service.</p>
     </div>
   </footer>
